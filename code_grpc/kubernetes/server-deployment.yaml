@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: grpc-server
+  template:
+    metadata:
+      labels:
+        app: grpc-server
+    spec:
+      containers:
+        - name: grpc-server
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/grpc-server:latest
+          ports:
+            - containerPort: 50051
+          imagePullPolicy: Always
+      serviceAccountName: ${EKS_CLUSTER_IAM_ROLE_NAME}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-server
+spec:
+  selector:
+    app: grpc-server
+  ports:
+  - port: 80
+    targetPort: 50051
+  type: ClusterIP

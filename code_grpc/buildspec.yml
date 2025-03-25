@@ -1,0 +1,21 @@
+# code_grpc/buildspec.yml
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - CLIENT_IMAGE_NAME=$ECR_CLIENT_REPOSITORY:latest
+      - SERVER_IMAGE_NAME=$ECR_SERVER_REPOSITORY:latest
+  build:
+    commands:
+      - echo Building the Docker images...
+      - docker build -t $CLIENT_IMAGE_NAME -f Dockerfile.client .
+      - docker build -t $SERVER_IMAGE_NAME -f Dockerfile.server .
+  post_build:
+    commands:
+      - echo Pushing the Docker images...
+      - docker push $CLIENT_IMAGE_NAME
+      - docker push $SERVER_IMAGE_NAME
+      - echo Build and push completed successfully
