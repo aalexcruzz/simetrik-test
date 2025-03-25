@@ -1,3 +1,6 @@
+# Reference Architecture Diagrams
+![Untitled-2024-06-04-1315](https://github.com/user-attachments/assets/46f8be44-5b44-4191-916a-785c2a2c79d8)
+
 # Terraform Setup for Simetrik Test
 
 This repository contains Terraform configurations to deploy infrastructure on AWS. Follow the steps below to set up and deploy the environment.
