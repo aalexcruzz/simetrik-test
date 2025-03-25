@@ -1,5 +1,5 @@
-# Reference Architecture Diagrams
-![Untitled-2024-06-04-1315](https://github.com/user-attachments/assets/46f8be44-5b44-4191-916a-785c2a2c79d8)
+# Reference Architecture Diagram
+![Architecture Diagram](https://github.com/user-attachments/assets/46f8be44-5b44-4191-916a-785c2a2c79d8)
 
 ## Networking Explanation
 The networking module ensures secure communication between the applications with the following components:
@@ -26,8 +26,7 @@ The networking module ensures secure communication between the applications with
 7. **Application Load Balancer (ALB)**
    - Distributes external traffic to the services deployed in EKS.
 
-![Untitled-2024-06-04-1315 (1)](https://github.com/user-attachments/assets/0c26e98e-d656-4572-a908-d19e1e35788f)
-
+![Networking Diagram](https://github.com/user-attachments/assets/0c26e98e-d656-4572-a908-d19e1e35788f)
 
 # Deployment Guide - Terraform Setup for Simetrik Test 
 
