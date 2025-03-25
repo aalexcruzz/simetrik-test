@@ -1,7 +1,35 @@
 # Reference Architecture Diagrams
 ![Untitled-2024-06-04-1315](https://github.com/user-attachments/assets/46f8be44-5b44-4191-916a-785c2a2c79d8)
 
-# Terraform Setup for Simetrik Test
+## Networking Explanation
+The networking module ensures secure communication between the applications with the following components:
+
+1. **VPC (Virtual Private Cloud)**
+   - Defines a private cloud network to host the infrastructure.
+   
+2. **Subnets**
+   - **Public Subnets**: Allow internet access, used by the ALB.
+   - **Private Subnets**: Secure backend services, hosting the EKS nodes.
+
+3. **Internet Gateway (IGW)**
+   - Enables public subnets to access the internet.
+
+4. **NAT Gateway**
+   - Allows instances in private subnets to reach the internet without being exposed.
+
+5. **Route Tables**
+   - Define the routing rules for public and private subnets.
+
+6. **Security Groups**
+   - Control access between components, ensuring only necessary traffic is allowed.
+
+7. **Application Load Balancer (ALB)**
+   - Distributes external traffic to the services deployed in EKS.
+
+![Untitled-2024-06-04-1315 (1)](https://github.com/user-attachments/assets/0c26e98e-d656-4572-a908-d19e1e35788f)
+
+
+# Deployment Guide - Terraform Setup for Simetrik Test 
 
 This repository contains Terraform configurations to deploy infrastructure on AWS. Follow the steps below to set up and deploy the environment.
 
