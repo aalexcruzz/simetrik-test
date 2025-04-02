@@ -278,9 +278,11 @@ resource "aws_codebuild_project" "deploy" {
       phases:
         install:
           commands:
-            - curl -o kubectl https://amazon-eks.s3.us-east-1.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+            - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
             - chmod +x ./kubectl
-            - mv ./kubectl /usr/local/bin
+            - mkdir -p ~/.local/bin
+            - mv ./kubectl ~/.local/bin/kubectl
             - aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
         build:
           commands:
