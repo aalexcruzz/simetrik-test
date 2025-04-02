@@ -287,6 +287,7 @@ resource "aws_codebuild_project" "deploy" {
             - echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
             - source ~/.bashrc
             - aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+            - kubectl version --client
         build:
           commands:
             - kubectl apply -f code_grpc/kubernetes/server-deployment.yaml
