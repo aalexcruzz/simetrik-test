@@ -178,10 +178,12 @@ resource "aws_iam_policy" "codebuild_policy" {
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
+          "ecr:CompleteLayerUpload",
           "ecr:GetAuthorizationToken",
+          "ecr:UploadLayerPart",
+          "ecr:InitiateLayerUpload",
           "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
+          "ecr:PutImage",
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket",
@@ -228,7 +230,7 @@ resource "aws_codebuild_project" "build" {
     }
     environment_variable {
       name  = "ECR_SERVER_REPOSITORY"
-      value = aws_ecr_repository.server.name
+      value = aws_ecr_repository.server.repository_url
     }
   }
   
