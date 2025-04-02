@@ -13,7 +13,7 @@ resource "aws_internet_gateway" "gw" {
 }
 
 resource "aws_eip" "nat" {}
-
+data "aws_availability_zones" "available" {}
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public_subnet[0].id
@@ -26,16 +26,21 @@ resource "aws_subnet" "public_subnet" {
   count                   = length(var.public_cidrs)
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_cidrs[count.index]
+  availability_zone       = element(data.aws_availability_zones.available.names, count.index)
   map_public_ip_on_launch = true
   tags = {
     Name = "public-subnet-${count.index}"
   }
 }
 
+
 resource "aws_subnet" "private_subnet" {
-  count      = length(var.private_cidrs)
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.private_cidrs[count.index]
+  count                   = length(var.private_cidrs)
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_cidrs[count.index]
+  availability_zone       = element(data.aws_availability_zones.available.names, count.index)
+  map_public_ip_on_launch = true
+
   tags = {
     Name = "private-subnet-${count.index}"
   }
@@ -44,7 +49,7 @@ resource "aws_subnet" "private_subnet" {
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "simetril_public_rt"
+    Name = "simetrik_public_rt"
   }
 }
 
@@ -63,7 +68,7 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "simetril_private_rt"
+    Name = "simetrik_private_rt"
   }
 }
 

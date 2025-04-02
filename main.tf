@@ -10,7 +10,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = ">= 4.33.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
@@ -51,12 +51,12 @@ module "networking" {
 
 }
 
-# module "EKS" {
-#   source             = "./modules/eks"
-#   cluster_name       = var.cluster_name
-#   vpc_id             = module.networking.vpc_id
-#   subnet_ids         = concat(module.networking.public_subnets, module.networking.private_subnets)
-#   security_group_ids = [module.networking.eks_sg]
-#   account_id         = var.account_id
-#   aws_region         = var.aws_region
-# }
+module "EKS" {
+  source             = "./modules/eks"
+  cluster_name       = var.cluster_name
+  vpc_id             = module.networking.vpc_id
+  subnet_ids         = concat(module.networking.public_subnets, module.networking.private_subnets)
+  security_group_ids = [module.networking.eks_sg]
+  account_id         = var.account_id
+  aws_region         = var.aws_region
+}

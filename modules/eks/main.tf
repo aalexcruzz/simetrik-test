@@ -36,20 +36,21 @@ resource "aws_iam_role_policy_attachment" "eks_worker_AmazonEKS_CNI_Policy" {
 # EKS Cluster
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.0"
+  version = "~> 20.31"
 
   cluster_name    = var.cluster_name
-  cluster_version = "1.27"
-  
+  cluster_version = "1.32"
+  cluster_endpoint_public_access = true
+  enable_cluster_creator_admin_permissions = true
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
   eks_managed_node_groups = {
     default = {
       min_size     = 1
-      max_size     = 3
-      desired_size = 2
-      instance_types = ["t3.medium"]
+      max_size     = 2
+      desired_size = 1
+      instance_types = ["t3.small"]
     }
   }
 
@@ -65,8 +66,6 @@ provider "kubernetes" {
     command     = "aws"
   }
 }
-
-
 
 resource "kubernetes_config_map" "aws_auth" {
   depends_on = [module.eks]
