@@ -324,6 +324,10 @@ resource "aws_codebuild_project" "deploy" {
       name  = "ECR_SERVER_REPOSITORY"
       value = aws_ecr_repository.server.repository_url
     }
+    environment_variable {
+      name  = "ECR_CLIENT_REPOSITORY"
+      value = aws_ecr_repository.client.repository_url
+    }
   }
 
   source {
