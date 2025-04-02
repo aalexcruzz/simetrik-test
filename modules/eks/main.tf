@@ -269,6 +269,10 @@ resource "aws_codebuild_project" "deploy" {
       name  = "AWS_REGION"
       value = var.aws_region
     }
+    environment_variable {
+      name  = "ECR_SERVER_REPOSITORY"
+      value = aws_ecr_repository.server.repository_url
+    }
   }
 
   source {
@@ -279,15 +283,11 @@ resource "aws_codebuild_project" "deploy" {
         install:
           commands:
             - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            - file ./kubectl
-            - chmod +x ./kubectl
             - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            - chmod +x ./kubectl
             - mkdir -p ~/.local/bin
             - mv ./kubectl ~/.local/bin/kubectl
-            - echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-            - source ~/.bashrc
             - aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
-            - kubectl version --client
         build:
           commands:
             - kubectl apply -f code_grpc/kubernetes/server-deployment.yaml
