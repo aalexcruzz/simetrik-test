@@ -189,7 +189,6 @@ resource "aws_iam_policy" "codebuild_policy" {
           "s3:ListBucket",
           "codecommit:GitPull",
           "eks:DescribeCluster",
-          "eks:UpdateKubeconfig",
           "sts:GetCallerIdentity"
         ],
         Resource = "*"
@@ -238,12 +237,12 @@ resource "aws_codebuild_project" "build" {
     type            = "GITHUB"
     location        = "https://github.com/aalexcruzz/simetrik-test"
     git_clone_depth = 1
+    buildspec       = "code_grpc/buildspec.yml" 
     git_submodules_config {
-      fetch_submodules = true
+      fetch_submodules = false
     }
   }
 
-  source_version = "master"
 }
 
 
