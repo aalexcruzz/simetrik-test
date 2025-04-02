@@ -31,63 +31,6 @@ resource "aws_iam_role_policy_attachment" "eks_worker_AmazonEKS_CNI_Policy" {
   role       = aws_iam_role.cluster_iam_role.name
 }
 
-
-
-# EKS Cluster
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.31"
-
-  cluster_name    = var.cluster_name
-  cluster_version = "1.32"
-  cluster_endpoint_public_access = true
-  enable_cluster_creator_admin_permissions = true
-  vpc_id     = var.vpc_id
-  subnet_ids = var.subnet_ids
-
-  eks_managed_node_groups = {
-    default = {
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
-      instance_types = ["t3.small"]
-    }
-  }
-
-  iam_role_arn  = aws_iam_role.cluster_iam_role.arn
-}
-
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
-    command     = "aws"
-  }
-}
-
-
-# ECR Repositories
-resource "aws_ecr_repository" "server" {
-  name = "grpc-server"
-}
-
-# resource "aws_ecr_repository" "client" {
-#   name = "grpc-client"
-# }
-
-# # CodeCommit Repository
-# resource "aws_codecommit_repository" "repo" {
-#   repository_name = "grpc-ecr-pipeline"
-#   description     = "Repository for gRPC ECR pipeline"
-# }
-
-# CodePipeline Artifact Bucket
-resource "aws_s3_bucket" "artifacts" {
-  bucket = "grpc-pipeline-artifacts-${var.account_id}"
-}
-
 # IAM Roles
 resource "aws_iam_role" "codepipeline_role" {
   name = "grpc-pipeline-role"
@@ -188,7 +131,7 @@ resource "aws_iam_policy" "codebuild_policy" {
           "s3:PutObject",
           "s3:ListBucket",
           "codecommit:GitPull",
-          "eks:DescribeCluster",
+          "eks:*",
           "sts:GetCallerIdentity"
         ],
         Resource = "*"
@@ -202,6 +145,110 @@ resource "aws_iam_role_policy_attachment" "codebuild_s3_access" {
   policy_arn = aws_iam_policy.codebuild_policy.arn
 }
 
+# EKS Cluster
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.31"
+
+  cluster_name    = var.cluster_name
+  cluster_version = "1.32"
+  cluster_endpoint_public_access = true
+  enable_cluster_creator_admin_permissions = true
+  authentication_mode  = "API_AND_CONFIG_MAP"
+  vpc_id     = var.vpc_id
+  subnet_ids = var.subnet_ids
+
+  eks_managed_node_groups = {
+    default = {
+      min_size     = 1
+      max_size     = 2
+      desired_size = 1
+      instance_types = ["t3.small"]
+    }
+  }
+
+access_entries = {
+  # CodeBuild role with admin access
+  codebuild_role = {
+    principal_arn     = "${aws_iam_role.codebuild_role.arn}"
+    kubernetes_groups = []
+    policy_associations = {
+      admin_access = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+        access_scope = {
+          type = "cluster"
+        }
+      }
+    }
+  }
+}
+
+  iam_role_arn  = aws_iam_role.cluster_iam_role.arn
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    command     = "aws"
+  }
+}
+
+
+
+
+# ECR Repositories
+resource "aws_ecr_repository" "server" {
+  name = "grpc-server"
+}
+
+# resource "aws_ecr_repository" "client" {
+#   name = "grpc-client"
+# }
+
+# # CodeCommit Repository
+# resource "aws_codecommit_repository" "repo" {
+#   repository_name = "grpc-ecr-pipeline"
+#   description     = "Repository for gRPC ECR pipeline"
+# }
+
+# CodePipeline Artifact Bucket
+resource "aws_s3_bucket" "artifacts" {
+  bucket = "grpc-pipeline-artifacts-${var.account_id}"
+}
+
+
+
+# resource "kubernetes_config_map_v1_data" "aws_auth" {
+#   depends_on = [module.eks]
+
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
+
+#   data = {
+#     mapRoles = jsonencode([
+#       {
+#         rolearn  = aws_iam_role.cluster_iam_role.arn
+#         username = "system:node:{{EC2PrivateDNSName}}"
+#         groups   = ["system:bootstrappers", "system:nodes"]
+#       },
+#       {
+#         rolearn  = aws_iam_role.codebuild_role.arn
+#         username = "ekscodebuild"
+#         groups   = ["system:masters"]
+#       },
+#       {
+#         rolearn  = "arn:aws:iam::${var.account_id}:role/service-role/${aws_iam_role.codebuild_role.name}"
+#         username = "ekscodebuild"
+#         groups   = ["system:masters"]
+#       }
+#     ])
+#   }
+# }
 
 # CodeBuild Project
 resource "aws_codebuild_project" "build" {
