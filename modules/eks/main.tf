@@ -153,8 +153,11 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = "1.32"
   cluster_endpoint_public_access = true
+  cluster_additional_security_group_ids = var.security_group_ids
+
   enable_cluster_creator_admin_permissions = true
   authentication_mode  = "API_AND_CONFIG_MAP"
+
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
@@ -164,11 +167,11 @@ module "eks" {
       max_size     = 2
       desired_size = 1
       instance_types = ["t3.small"]
+      vpc_security_group_ids = var.security_group_ids
     }
   }
 
 access_entries = {
-  # CodeBuild role with admin access
   codebuild_role = {
     principal_arn     = "${aws_iam_role.codebuild_role.arn}"
     kubernetes_groups = []
@@ -196,8 +199,86 @@ provider "kubernetes" {
   }
 }
 
+module "lb_role" {
+  source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
 
+  role_name = "${var.cluster_name}_eks_lb"
+  attach_load_balancer_controller_policy = true
 
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["app-grpc:aws-load-balancer-controller"]
+    }
+  }
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+      command     = "aws"
+    }
+  }
+}
+
+resource "helm_release" "lb" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "app-grpc"
+  depends_on = [
+    kubernetes_service_account.service-account
+  ]
+
+  set {
+    name  = "region"
+    value = var.aws_region
+  }
+
+  set {
+    name  = "vpcId"
+    value = var.vpc_id
+  }
+
+  set {
+    name  = "image.repository"
+    value = "602401143452.dkr.ecr.us-east-1.amazonaws.com/amazon/aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "clusterName"
+    value = var.cluster_name
+  }
+}
+
+resource "kubernetes_service_account" "service-account" {
+  metadata {
+    name = "aws-load-balancer-controller"
+    namespace = "app-grpc"
+    labels = {
+        "app.kubernetes.io/name"= "aws-load-balancer-controller"
+        "app.kubernetes.io/component"= "controller"
+    }
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.lb_role.iam_role_arn
+      "eks.amazonaws.com/sts-regional-endpoints" = "true"
+    }
+  }
+}
 
 # ECR Repositories
 resource "aws_ecr_repository" "server" {
@@ -208,47 +289,10 @@ resource "aws_ecr_repository" "client" {
   name = "grpc-client"
 }
 
-# # CodeCommit Repository
-# resource "aws_codecommit_repository" "repo" {
-#   repository_name = "grpc-ecr-pipeline"
-#   description     = "Repository for gRPC ECR pipeline"
-# }
-
 # CodePipeline Artifact Bucket
 resource "aws_s3_bucket" "artifacts" {
   bucket = "grpc-pipeline-artifacts-${var.account_id}"
 }
-
-
-
-# resource "kubernetes_config_map_v1_data" "aws_auth" {
-#   depends_on = [module.eks]
-
-#   metadata {
-#     name      = "aws-auth"
-#     namespace = "kube-system"
-#   }
-
-#   data = {
-#     mapRoles = jsonencode([
-#       {
-#         rolearn  = aws_iam_role.cluster_iam_role.arn
-#         username = "system:node:{{EC2PrivateDNSName}}"
-#         groups   = ["system:bootstrappers", "system:nodes"]
-#       },
-#       {
-#         rolearn  = aws_iam_role.codebuild_role.arn
-#         username = "ekscodebuild"
-#         groups   = ["system:masters"]
-#       },
-#       {
-#         rolearn  = "arn:aws:iam::${var.account_id}:role/service-role/${aws_iam_role.codebuild_role.name}"
-#         username = "ekscodebuild"
-#         groups   = ["system:masters"]
-#       }
-#     ])
-#   }
-# }
 
 # CodeBuild Project
 resource "aws_codebuild_project" "build" {

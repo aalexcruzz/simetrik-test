@@ -26,29 +26,12 @@ provider "aws" {
 }
 
 
-# # Test code locally
-# provider "aws" {
-#   region                      = "us-east-1"
-#   access_key                  = "null"
-#   secret_key                  = "null"
-#   s3_force_path_style         = true
-#   skip_credentials_validation = true
-#   skip_metadata_api_check     = true
-#   skip_requesting_account_id  = true
-
-#   endpoints {
-#     s3  = "http://localhost:4566"
-#     sts = "http://localhost:4566"
-#   }
-# }
-
 ### Modules ##
 module "networking" {
-  source = "./modules/networking"
-  vpc_cidr  = var.vpc_cidr
-  public_cidrs = var.public_cidrs
+  source        = "./modules/networking"
+  vpc_cidr      = var.vpc_cidr
+  public_cidrs  = var.public_cidrs
   private_cidrs = var.private_cidrs
-
 }
 
 module "EKS" {

@@ -29,7 +29,9 @@ resource "aws_subnet" "public_subnet" {
   availability_zone       = element(data.aws_availability_zones.available.names, count.index)
   map_public_ip_on_launch = true
   tags = {
-    Name = "public-subnet-${count.index}"
+    Name                                 = "public-subnet-${count.index}"
+    "kubernetes.io/role/elb"             = "1"
+    "kubernetes.io/cluster/simetrik_eks" = "shared"
   }
 }
 
@@ -42,7 +44,9 @@ resource "aws_subnet" "private_subnet" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "private-subnet-${count.index}"
+    Name                                 = "private-subnet-${count.index}"
+    "kubernetes.io/role/internal-elb"    = "1"
+    "kubernetes.io/cluster/simetrik_eks" = "shared"
   }
 }
 
