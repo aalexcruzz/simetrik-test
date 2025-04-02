@@ -1,5 +1,5 @@
 FROM python:3.8
-ADD app/ /
+ADD code_grpc/app/ /
 RUN pip install -r requirements.txt
 
 EXPOSE 9000
