@@ -7,7 +7,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: ${ACM_ARN}
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:318489830939:certificate/3b13ead3-ec5d-44a4-920f-e34f4967d61b
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
   labels:
     app: grpc-server
@@ -17,7 +17,7 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    host: ${DNS_HOSTNAME}
+    host: jefersontestsimetrik.com
     http:
       paths:
       - backend:

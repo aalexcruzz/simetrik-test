@@ -174,7 +174,7 @@ access_entries = {
     kubernetes_groups = []
     policy_associations = {
       admin_access = {
-        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
         access_scope = {
           type = "cluster"
         }

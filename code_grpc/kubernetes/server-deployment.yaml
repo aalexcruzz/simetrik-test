@@ -32,7 +32,6 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
       restartPolicy: Always
-      serviceAccountName: ${EKS_CLUSTER_IAM_ROLE_NAME}
 ---
 apiVersion: v1
 kind: Service
@@ -48,4 +47,3 @@ spec:
   clusterIP: None
   selector:
     app: grpc-server
----
