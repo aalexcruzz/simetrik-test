@@ -17,13 +17,13 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    host: jefersontestsimetrik.com
-    http:
-      paths:
-      - backend:
-          service:
-            name: grpcserver
-            port:
-              number: 9000
-        path: /
-        pathType: Prefix
+    - host: jefersontestsimetrik.com
+      http:
+        paths:
+        - backend:
+            service:
+              name: grpcserver
+              port:
+                number: 9000
+          path: /
+          pathType: Prefix
