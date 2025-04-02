@@ -1,9 +1,11 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grpc-client
+  namespace: app-grpc
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: grpc-client
@@ -14,19 +16,22 @@ spec:
     spec:
       containers:
         - name: grpc-client
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/grpc-client:latest
-          ports:
-            - containerPort: 50051
+          image: $ECR_CLIENT_REPOSITORY:latest
           imagePullPolicy: Always
+          env:
+          - name: GRPC_SERVER_HOST
+            value: "grpc-server.app-grpc"
+          - name: GRPC_SERVER_PORT
+            value: "9000"
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grpc-client
+  namespace: app-grpc
 spec:
   selector:
     app: grpc-client
-  ports:
-  - port: 80
-    targetPort: 50051
+  ports: []
   type: ClusterIP

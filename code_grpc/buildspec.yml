@@ -7,12 +7,15 @@ phases:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - SERVER_IMAGE_NAME=$ECR_SERVER_REPOSITORY:latest
+      - CLIENT_IMAGE_NAME=$ECR_CLIENT_REPOSITORY:latest
   build:
     commands:
       - echo Building the Docker images...
-      - docker build -t $SERVER_IMAGE_NAME -f code_grpc/Dockerfile .
+      - docker build -t $SERVER_IMAGE_NAME -f code_grpc/Dockerfile.server .
+      - docker build -t $CLIENT_IMAGE_NAME -f code_grpc/Dockerfile.client .
   post_build:
     commands:
       - echo Pushing the Docker images...
       - docker push $SERVER_IMAGE_NAME
+      - docker push $CLIENT_IMAGE_NAME
       - echo Build and push completed successfully

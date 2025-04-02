@@ -2,13 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/backend-protocol-version: "GRPC"
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:318489830939:certificate/3b13ead3-ec5d-44a4-920f-e34f4967d61b
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
   labels:
     app: grpc-server
     environment: dev
@@ -16,14 +16,8 @@ metadata:
   namespace: app-grpc
 spec:
   ingressClassName: alb
-  rules:
-    - host: jefersontestsimetrik.com
-      http:
-        paths:
-        - backend:
-            service:
-              name: grpcserver
-              port:
-                number: 9000
-          path: /
-          pathType: Prefix
+  defaultBackend:
+    service:
+      name: grpc-server
+      port:
+        number: 9000

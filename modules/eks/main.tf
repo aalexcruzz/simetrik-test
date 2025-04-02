@@ -204,9 +204,9 @@ resource "aws_ecr_repository" "server" {
   name = "grpc-server"
 }
 
-# resource "aws_ecr_repository" "client" {
-#   name = "grpc-client"
-# }
+resource "aws_ecr_repository" "client" {
+  name = "grpc-client"
+}
 
 # # CodeCommit Repository
 # resource "aws_codecommit_repository" "repo" {
@@ -278,6 +278,10 @@ resource "aws_codebuild_project" "build" {
       name  = "ECR_SERVER_REPOSITORY"
       value = aws_ecr_repository.server.repository_url
     }
+    environment_variable {
+      name  = "ECR_CLIENT_REPOSITORY"
+      value = aws_ecr_repository.client.repository_url
+    }
   }
   
   source {
@@ -338,6 +342,7 @@ resource "aws_codebuild_project" "deploy" {
         build:
           commands:
             - kubectl apply -f code_grpc/kubernetes/server-deployment.yaml
+            - kubectl apply -f code_grpc/kubernetes/client-deployment.yaml
             - kubectl apply -f code_grpc/kubernetes/ingress.yaml
     EOT
   }
