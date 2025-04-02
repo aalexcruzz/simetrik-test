@@ -1,9 +1,16 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-grpc
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grpc-server
+  namespace: app-grpc
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: grpc-server
@@ -13,21 +20,32 @@ spec:
         app: grpc-server
     spec:
       containers:
-        - name: grpc-server
+        - name: grpc-demo
           image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/grpc-server:latest
-          ports:
-            - containerPort: 50051
           imagePullPolicy: Always
+          ports:
+            - name: grpc-api
+              containerPort: 9000
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+      restartPolicy: Always
       serviceAccountName: ${EKS_CLUSTER_IAM_ROLE_NAME}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grpc-server
+  namespace: app-grpc
 spec:
+  # bypass kube-proxy
+  ports:
+  - port: 9000
+    protocol: TCP
+    targetPort: 9000
+  clusterIP: None
   selector:
     app: grpc-server
-  ports:
-  - port: 80
-    targetPort: 50051
-  type: ClusterIP
+---

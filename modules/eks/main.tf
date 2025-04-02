@@ -67,45 +67,25 @@ provider "kubernetes" {
   }
 }
 
-resource "kubernetes_config_map" "aws_auth" {
-  depends_on = [module.eks]
-
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
-    mapRoles = jsonencode([
-      {
-        rolearn  = "arn:aws:iam::${var.account_id}:role/EKSWorkerNodeRole"
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = ["system:bootstrappers", "system:nodes"]
-      }
-    ])
-  }
-}
-
 
 # ECR Repositories
 resource "aws_ecr_repository" "server" {
   name = "grpc-server"
 }
 
-resource "aws_ecr_repository" "client" {
-  name = "grpc-client"
-}
+# resource "aws_ecr_repository" "client" {
+#   name = "grpc-client"
+# }
 
-# CodeCommit Repository
-resource "aws_codecommit_repository" "repo" {
-  repository_name = "grpc-ecr-pipeline"
-  description     = "Repository for gRPC ECR pipeline"
-}
+# # CodeCommit Repository
+# resource "aws_codecommit_repository" "repo" {
+#   repository_name = "grpc-ecr-pipeline"
+#   description     = "Repository for gRPC ECR pipeline"
+# }
 
 # CodePipeline Artifact Bucket
 resource "aws_s3_bucket" "artifacts" {
   bucket = "grpc-pipeline-artifacts-${var.account_id}"
-  acl    = "private"
 }
 
 # IAM Roles
@@ -122,6 +102,11 @@ resource "aws_iam_role" "codepipeline_role" {
       Action = "sts:AssumeRole"
     }]
   })
+}
+
+resource "aws_codestarconnections_connection" "repo_git" {
+  name          = "example-connection"
+  provider_type = "GitHub"
 }
 
 resource "aws_iam_role_policy" "codepipeline_policy" {
@@ -141,14 +126,28 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "ecr:*"
         ],
         Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = ["codestar-connections:UseConnection"],
+        Resource = [aws_codestarconnections_connection.repo_git.arn]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "codebuild:BatchGetBuilds",
+          "codebuild:StartBuild"
+        ],
+        Resource = "*"
       }
     ]
   })
 }
 
 
+
 resource "aws_iam_role" "codebuild_role" {
-  name = "grpc-pipeline-role"
+  name = "grpc-codebuild_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -162,14 +161,13 @@ resource "aws_iam_role" "codebuild_role" {
   })
 
   tags = {
-    Name = "grpc-pipeline-role"
+    Name = "grpc-codebuild_role"
   }
 }
 
 # Role codebuild
-resource "aws_iam_role_policy" "codebuild_policy" {
+resource "aws_iam_policy" "codebuild_policy" {
   name = "codebuild-policy"
-  role = aws_iam_role.codebuild_role.id
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -200,27 +198,13 @@ resource "aws_iam_role_policy" "codebuild_policy" {
 
 resource "aws_iam_role_policy_attachment" "codebuild_s3_access" {
   role       = aws_iam_role.codebuild_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  policy_arn = aws_iam_policy.codebuild_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "codebuild_ecr_access" {
-  role       = aws_iam_role.codebuild_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonECRFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "codebuild_codecommit_ro" {
-  role       = aws_iam_role.codebuild_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodeCommitReadOnly"
-}
-
-resource "aws_iam_role_policy_attachment" "codebuild_eks_ro" {
-  role       = aws_iam_role.codebuild_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSReadOnlyPolicy" 
-}
 
 # CodeBuild Project
 resource "aws_codebuild_project" "build" {
-  depends_on = [aws_ecr_repository.server, aws_ecr_repository.client]
+  depends_on = [aws_ecr_repository.server]
   name          = "grpc-ecr-build"
   service_role  = aws_iam_role.codebuild_role.arn
   
@@ -243,20 +227,21 @@ resource "aws_codebuild_project" "build" {
       value = var.aws_region
     }
     environment_variable {
-      name  = "ECR_CLIENT_REPOSITORY"
-      value = aws_ecr_repository.client.name
-    }
-    environment_variable {
       name  = "ECR_SERVER_REPOSITORY"
       value = aws_ecr_repository.server.name
     }
   }
   
   source {
-    type      = "CODECOMMIT"
-    location  = aws_codecommit_repository.repo.clone_url_http
-    buildspec = file("${path.root}/code_grpc/buildspec.yml") 
+    type            = "GITHUB"
+    location        = "https://github.com/aalexcruzz/simetrik-test"
+    git_clone_depth = 1
+    git_submodules_config {
+      fetch_submodules = true
+    }
   }
+
+  source_version = "master"
 }
 
 
@@ -266,7 +251,7 @@ resource "aws_codebuild_project" "deploy" {
   service_role  = aws_iam_role.codebuild_role.arn
 
   artifacts {
-    type = "NO_ARTIFACTS"
+    type = "CODEPIPELINE"
   }
 
   environment {
@@ -292,18 +277,18 @@ resource "aws_codebuild_project" "deploy" {
       phases:
         install:
           commands:
-            - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+            - curl -o kubectl https://amazon-eks.s3.us-east-1.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
             - chmod +x ./kubectl
             - mv ./kubectl /usr/local/bin
             - aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
         build:
           commands:
             - kubectl apply -f code_grpc/kubernetes/server-deployment.yaml
-            - kubectl apply -f code_grpc/kubernetes/client-deployment.yaml
             - kubectl apply -f code_grpc/kubernetes/ingress.yaml
     EOT
   }
 }
+
 
 resource "aws_codepipeline" "pipeline" {
   name     = "grpc-full-pipeline"
@@ -320,12 +305,13 @@ resource "aws_codepipeline" "pipeline" {
       name             = "Source"
       category         = "Source"
       owner            = "AWS"
-      provider         = "CodeCommit"
+      provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["source_output"]
       configuration = {
-        RepositoryName = aws_codecommit_repository.repo.repository_name
-        BranchName     = "main"
+        ConnectionArn    = aws_codestarconnections_connection.repo_git.arn
+        FullRepositoryId = "aalexcruzz/simetrik-test"
+        BranchName       = "main"
       }
     }
   }
