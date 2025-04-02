@@ -339,11 +339,12 @@ resource "aws_codebuild_project" "deploy" {
             - mkdir -p ~/.local/bin
             - mv ./kubectl ~/.local/bin/kubectl
             - aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+            - sudo apt-get update && sudo apt-get install -y gettext 
         build:
           commands:
-            - kubectl apply -f code_grpc/kubernetes/server-deployment.yaml
-            - kubectl apply -f code_grpc/kubernetes/client-deployment.yaml
-            - kubectl apply -f code_grpc/kubernetes/ingress.yaml
+            - envsubst < code_grpc/kubernetes/server-deployment.yaml | kubectl apply -f -
+            - envsubst < code_grpc/kubernetes/client-deployment.yaml | kubectl apply -f -
+            - envsubst < code_grpc/kubernetes/ingress.yaml | kubectl apply -f -
     EOT
   }
 }

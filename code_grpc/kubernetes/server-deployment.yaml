@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: grpc-demo
-          image: $ECR_SERVER_REPOSITORY:latest
+          image: ${ECR_SERVER_REPOSITORY}:latest
           imagePullPolicy: Always
           ports:
             - name: grpc-api
