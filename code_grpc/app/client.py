@@ -1,6 +1,7 @@
 import grpc
 import logging
-import os 
+import os
+import time
 import helloworld_pb2_grpc as pb2_grpc
 import helloworld_pb2 as pb2
 
@@ -43,8 +44,10 @@ class HelloworldClient:
 
 if __name__ == '__main__':
     client = HelloworldClient()
-    result = client.get_url(message="Hello to gRPC server from client")
-    if result:
-        print(f'{result}')
-    else:
-        print("Failed to receive response from server.")
+    while True:
+        result = client.get_url(message="Hello to gRPC server from client")
+        if result:
+            print(f'{result}')
+        else:
+            print("Failed to receive response from server.")
+        time.sleep(5)
