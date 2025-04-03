@@ -39,7 +39,6 @@ metadata:
   name: grpc-server
   namespace: app-grpc
 spec:
-  # bypass kube-proxy
   ports:
   - port: 9000
     protocol: TCP
